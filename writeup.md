@@ -15,7 +15,7 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 [image1]: ./output_images/car_not_car.png
-[image2]: ./output_images/HOG.jpg
+[image2]: ./output_images/HOG_YUV_o:9_pc:8_cb:3.png
 [image3]: ./examples/sliding_windows.jpg
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png
@@ -46,13 +46,27 @@ Here is an example using the `YCrCb` color space and HOG parameters of `orientat
 
 ####2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and...
+I tried various combinations of parameters and
 
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
-I trained a linear SVM using...
+For a baseline, I first tested first without the HOG features and in RGB colorspace (So just the binned RGB image and the histogram features).  And **without the StandardScalar**. This gave 3168 features per image:
 
-###Sliding Window Search
+    Best parameters are:		 {'C': 1, 'kernel': 'linear'}
+    Score on training data:		 0.953195382883
+    Score on test data:		 0.953828828829
+
+I tested adding in the HOG features and tested in 'YUV' and 'HLS' colorspaces and with hog `cells_per_block` as 2 and 3, but it always gave almost exactly the same score - 0.94 to 0.95.  I even tested with both L1 and L2 losses on the hog function, with no notable difference.
+
+I tested with the StandardScalar and instantly got a much better result:
+
+    Best parameters are:		 {'kernel': 'linear', 'C': 1}
+    Score on training data:		 0.979166666667
+    Score on test data:		 0.980574324324
+
+I have to admit that I was surprised at just how large an impact it made.
+
+### Sliding Window Search
 
 ####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
