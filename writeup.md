@@ -16,7 +16,7 @@ The goals / steps of this project are the following:
 [//]: # (Image References)
 [image1]: ./output_images/car_not_car.png
 [image2]: ./output_images/HOG_YUV_o:9_pc:8_cb:3.png
-[image3]: ./examples/sliding_windows.jpg
+[image3]: ./output_images/sliding_windows.jpg
 [image4]: ./examples/sliding_window.jpg
 [image5]: ./examples/bboxes_and_heat.png
 [image6]: ./examples/labels_map.png
@@ -40,41 +40,52 @@ I started by reading in all the `vehicle` and `non-vehicle` images.  Here is an 
 
 I then explored different color spaces ('RGB', 'HSV', 'YUV' and 'YCbCr') and different `skimage.hog()` parameters (`orientations`, `pixels_per_cell`, and `cells_per_block`).  I grabbed random images from each of the two classes and displayed them to get a feel for what the `skimage.hog()` output looks like.
 
-Here is an example using the `YCrCb` color space and HOG parameters of `orientations=8`, `pixels_per_cell=(8, 8)` and `cells_per_block=(2, 2)`:
+Here is an example using the `YUV` color space and HOG parameters of `orientations=9`, `pixels_per_cell=(8, 8)` and `cells_per_block=(3, 3)`:
 
 ![alt text][image2]
 
+**Side Note:** In the example image for the above, it plots images of the "features" for each channel.  I have no idea what that is supposed to be plotting exactly.
+
 ####2. Explain how you settled on your final choice of HOG parameters.
 
-I tried various combinations of parameters and
+I tried various combinations of parameters and looked at how it affected the training data score in the SVM classifier below, and picked the one with the highest score.
+
+In the end I settled with YUV
 
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
 For a baseline, I first tested first without the HOG features and in RGB colorspace (So just the binned RGB image and the histogram features).  And **without the StandardScalar**. This gave 3168 features per image:
 
-    Best parameters are:		 {'C': 1, 'kernel': 'linear'}
-    Score on training data:		 0.953195382883
-    Score on test data:		 0.953828828829
+    Best parameters are:         {'kernel': 'linear', 'C': 1}
+    Score on training data:	     0.953
+    Score on test data:          0.953
 
 I tested adding in the HOG features and tested in 'YUV' and 'HLS' colorspaces and with hog `cells_per_block` as 2 and 3, but it always gave almost exactly the same score - 0.94 to 0.95.  I even tested with both L1 and L2 losses on the hog function, with no notable difference.
 
 I tested with the StandardScalar and instantly got a much better result:
 
-    Best parameters are:		 {'kernel': 'linear', 'C': 1}
-    Score on training data:		 0.979166666667
-    Score on test data:		 0.980574324324
+    Best parameters are:         {'kernel': 'linear', 'C': 1}
+    Score on training data:      0.979
+    Score on test data:          0.980
 
-I have to admit that I was surprised at just how large an impact it made.
+I have to admit that I was surprised at just how large an impact the scalar made.
+
+Doing a GridSearchCV for the best kernel and C on this gives:
+
+    Best parameters are:         {'kernel': 'rbf', 'C': 5}
+    Score on training data:      0.995
+    Score on test data:          0.998
 
 ### Sliding Window Search
 
-####1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
+#### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
-I decided to search random window positions at random scales all over the image and came up with this (ok just kidding I didn't actually ;):
+
+I search the bottom half of the image only with the sliding window search, and only search close to the horizon for the smallest windows.  I decided to overlap by 0.5 except for the very smallest windows which I have no overlap.  I used 4 different sizes, with 64x64 being the smallest (since that was the training image size).
 
 ![alt text][image3]
 
-####2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
+#### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
 Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
 
