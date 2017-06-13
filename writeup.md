@@ -29,10 +29,11 @@ The goals / steps of this project are the following:
 [image_heatmap_3]: ./output_images/heatmap_3.jpg
 [image_heatmap_4]: ./output_images/heatmap_4.jpg
 [image_heatmap_5]: ./output_images/heatmap_5.jpg
-[image5]: ./examples/bboxes_and_heat.png
+[image_heatmap_5_integrated]: ./output_images/heatmap_integrated_5.jpg
+[image5]: ./output_images/bboxes_and_heat.png
 [image6]: ./examples/labels_map.png
 [image7]: ./examples/output_bboxes.png
-[video1]: ./project_video.mp4
+[video1]: ./project_video_processed.mp4
 
 ---
 
@@ -95,7 +96,7 @@ Doing a GridSearchCV for the best kernel and C on this gives:
 #### 1. Describe how (and identify where in your code) you implemented a sliding window search.  How did you decide what scales to search and how much to overlap windows?
 
 
-I search the bottom half of the image only with the sliding window search, and only search close to the horizon for the smallest windows.  I decided to overlap by 0.5 except for the very smallest windows which I have no overlap.  I used 4 different sizes, with 64x64 being the smallest (since that was the training image size).
+I search the bottom half of the image only with the sliding window search, and only search close to the horizon for the smallest windows.  I decided to overlap by 0.6 except for the very smallest windows in the vertical direction which I increased to an 80% overlap.  I used just 2 different sizes,  64x64 and 96x96.  I did try other sizes, but found that they didn't add to the performance.  The high overlap was necessary to get good accuracy on the video.
 
 ![alt text][image3]
 
@@ -114,6 +115,11 @@ Ultimately I searched on four scales using YUV 3-channel HOG features plus spati
 ![alt text][image4_4]
 
 ![alt text][image4_5]
+
+My pipeline is quite slow however.  I initially had much larger windows as well, but found that these did nothing for the accuracy, and instead added in some false positives, so I removed these.
+
+I did immplement the suggested caching of the hog_features, but after timing it both ways, I found that it did not provide any performance increase, so I disabled it.  It is still in the code however. (In `extract_features()` in `hog.ipynb`).
+
 ---
 
 ### Video Implementation
@@ -122,10 +128,13 @@ Ultimately I searched on four scales using YUV 3-channel HOG features plus spati
 
 Here's a [link to my video result](./project_video_processed.mp4)
 
+And with a [link to my video result with a heat map overlaid](./project_video_processed_with_heat.mp4)
 
 #### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
-I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.
+In `hog.ipynb` in `heat_map_test_image()` I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.
+
+I overlaid the heatmap on to the image.
 
 Here's an example from the 6 test images:
 
@@ -142,7 +151,7 @@ Here's an example from the 6 test images:
 ![alt text][image_heatmap_5]
 
 
-For the video, I re-use the heat map for each frame, but add a decay to the heat map by decreasing the values by 25% after each frame.  This effective gives me a decayed integration between frames.
+For the video, I re-use the heat map for each frame, but add a decay to the heat map by decreasing the values by 50% after each frame.  This effectively gives me a decayed integration between frames.  I found that quite a high decay works best.  I also had to increase the threshold to 3 to filter out the occasional false positives when using the integration method.
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
@@ -150,19 +159,18 @@ Here's an example result showing the heatmap from a series of frames of video, t
 
 ![alt text][image5]
 
-### Here is the output of `scipy.ndimage.measurements.label()` on the integrated heatmap from all six frames:
-![alt text][image6]
-
-### Here the resulting bounding boxes are drawn onto the last frame in the series:
-![alt text][image7]
-
-
+### Here the resulting bounding boxes and heat map are drawn onto the last frame in the series:
+![alt text][image_heatmap_5_integrated]
+You can see that it has elongated the labelled box for the cars.  This is with a decay of 50%.
 
 ---
 
-###Discussion
+### Discussion
 
-####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
+#### 1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-Here I'll talk about the approach I took, what techniques I used, what worked and why, where the pipeline might fail and how I might improve it if I were going to pursue this project further.
+The main issue that I have is performance.  On my laptop, it takes 4 hours to process the 50 second long video!
 
+To deal with this, I decreased the overlap for testing and development.  I also implemented a cache for the hog features but this didn't help with performance.
+
+The pipeline is likely to fail in many places, such as detecting cars closely in front, since I don't have any large windows.  It also fails to correctly identify two cars as two cars when they are too close or one is partially obscuring the other.  One possible solution for this could be to add a basic motion model - Once we detect a car, we could detect its direction of motion, and assume that it will travel roughly in the same direction.  And so we can approximately track even a fully occluded car.
