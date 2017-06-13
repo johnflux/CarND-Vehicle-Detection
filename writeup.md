@@ -17,7 +17,18 @@ The goals / steps of this project are the following:
 [image1]: ./output_images/car_not_car.png
 [image2]: ./output_images/HOG_YUV_o:9_pc:8_cb:3.png
 [image3]: ./output_images/sliding_windows.jpg
-[image4]: ./examples/sliding_window.jpg
+[image4_0]: ./output_images/sliding_window_0.jpg
+[image4_1]: ./output_images/sliding_window_1.jpg
+[image4_2]: ./output_images/sliding_window_2.jpg
+[image4_3]: ./output_images/sliding_window_3.jpg
+[image4_4]: ./output_images/sliding_window_4.jpg
+[image4_5]: ./output_images/sliding_window_5.jpg
+[image_heatmap_0]: ./output_images/heatmap_0.jpg
+[image_heatmap_1]: ./output_images/heatmap_1.jpg
+[image_heatmap_2]: ./output_images/heatmap_2.jpg
+[image_heatmap_3]: ./output_images/heatmap_3.jpg
+[image_heatmap_4]: ./output_images/heatmap_4.jpg
+[image_heatmap_5]: ./output_images/heatmap_5.jpg
 [image5]: ./examples/bboxes_and_heat.png
 [image6]: ./examples/labels_map.png
 [image7]: ./examples/output_bboxes.png
@@ -50,7 +61,10 @@ Here is an example using the `YUV` color space and HOG parameters of `orientatio
 
 I tried various combinations of parameters and looked at how it affected the training data score in the SVM classifier below, and picked the one with the highest score.
 
-In the end I settled with YUV
+I tested:
+`orientations=9`, `pixels_per_cell=(8, 8)` `cells_per_block=(3, 3)` : Score 0.995 on test data
+
+In the end I settled with YUV.
 
 ####3. Describe how (and identify where in your code) you trained a classifier using your selected HOG features (and color features if you used them).
 
@@ -87,20 +101,48 @@ I search the bottom half of the image only with the sliding window search, and o
 
 #### 2. Show some examples of test images to demonstrate how your pipeline is working.  What did you do to optimize the performance of your classifier?
 
-Ultimately I searched on two scales using YCrCb 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
+Ultimately I searched on four scales using YUV 3-channel HOG features plus spatially binned color and histograms of color in the feature vector, which provided a nice result.  Here are some example images:
 
-![alt text][image4]
+![alt text][image4_0]
+
+![alt text][image4_1]
+
+![alt text][image4_2]
+
+![alt text][image4_3]
+
+![alt text][image4_4]
+
+![alt text][image4_5]
 ---
 
 ### Video Implementation
 
-####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
-Here's a [link to my video result](./project_video.mp4)
+#### 1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (somewhat wobbly or unstable bounding boxes are ok as long as you are identifying the vehicles most of the time with minimal false positives.)
+
+Here's a [link to my video result](./project_video_processed.mp4)
 
 
-####2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
+#### 2. Describe how (and identify where in your code) you implemented some kind of filter for false positives and some method for combining overlapping bounding boxes.
 
 I recorded the positions of positive detections in each frame of the video.  From the positive detections I created a heatmap and then thresholded that map to identify vehicle positions.  I then used `scipy.ndimage.measurements.label()` to identify individual blobs in the heatmap.  I then assumed each blob corresponded to a vehicle.  I constructed bounding boxes to cover the area of each blob detected.
+
+Here's an example from the 6 test images:
+
+![alt text][image_heatmap_0]
+
+![alt text][image_heatmap_1]
+
+![alt text][image_heatmap_2]
+
+![alt text][image_heatmap_3]
+
+![alt text][image_heatmap_4]
+
+![alt text][image_heatmap_5]
+
+
+For the video, I re-use the heat map for each frame, but add a decay to the heat map by decreasing the values by 25% after each frame.  This effective gives me a decayed integration between frames.
 
 Here's an example result showing the heatmap from a series of frames of video, the result of `scipy.ndimage.measurements.label()` and the bounding boxes then overlaid on the last frame of video:
 
